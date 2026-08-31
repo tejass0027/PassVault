@@ -44,6 +44,9 @@ without a compiler in the loop - copy the exact error text back and it can be fi
     correctly → a red banner appears on the vault list ("Someone tried to open PassVault
     2 times") → tap "View activity" (or Settings → Login activity) → see the timestamped
     list of incorrect and successful attempts.
+13. From the vault list, tap the photo icon (top bar) → tap the add-photo icon → pick an
+    image from your gallery → it appears in the grid → tap it → confirm it opens full-size
+    → delete it and confirm it disappears from the grid.
 
 ## Security model
 
@@ -68,11 +71,18 @@ without a compiler in the loop - copy the exact error text back and it can be fi
   happened before you last logged in successfully, the vault list surfaces a banner ("Someone
   tried to open PassVault N times") the first time you open it afterward; the full history is
   under Settings → Login activity.
+- **Photo vault**: a separate section (photo icon in the vault list's top bar) for storing
+  photos unrelated to any specific password - e.g. a picture of a physical key, an ID, or
+  backup codes. Each photo is encrypted individually with the same DEK as the passwords (a
+  small metadata index lists them; the actual image bytes live in their own encrypted file
+  each, so adding/removing one photo never touches the others). Photos are picked using
+  Android's built-in Photo Picker, which needs no storage/gallery permission at all - keeping
+  the app's zero-extra-permissions design intact.
 
 ## Project layout
 
 - `crypto/` - AES-GCM helpers and PBKDF2 key derivation.
 - `auth/` - pattern, biometric, and security-question managers; encrypted prefs storage.
-- `data/` - the `Credential` model, the encrypted vault store, and backup export/import.
+- `data/` - the `Credential`/`VaultPhoto` models, the encrypted vault and photo stores, and backup export/import.
 - `ui/` - Jetpack Compose screens, grouped by onboarding / login / vault / settings.
 - `navigation/NavGraph.kt` - screen routing and the auto-lock logic.

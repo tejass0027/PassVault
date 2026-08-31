@@ -28,6 +28,7 @@ import com.tejas.passvault.ui.settings.BackupImportScreen
 import com.tejas.passvault.ui.settings.ChangePatternScreen
 import com.tejas.passvault.ui.settings.LoginActivityScreen
 import com.tejas.passvault.ui.settings.SettingsScreen
+import com.tejas.passvault.ui.photos.PhotoVaultScreen
 import com.tejas.passvault.ui.vault.AddEditEntryScreen
 import com.tejas.passvault.ui.vault.EntryDetailScreen
 import com.tejas.passvault.ui.vault.VaultListScreen
@@ -48,6 +49,7 @@ private const val MANAGE_SECURITY_QUESTIONS = "manage_security_questions"
 private const val BACKUP_EXPORT = "backup_export"
 private const val BACKUP_IMPORT = "backup_import"
 private const val LOGIN_ACTIVITY = "login_activity"
+private const val PHOTO_VAULT = "photo_vault"
 
 @Composable
 fun PassVaultNavGraph(vm: VaultViewModel) {
@@ -85,7 +87,8 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
             val current = navController.currentDestination?.route
             val protectedRoutes = setOf(
                 VAULT_LIST, ENTRY_DETAIL, ENTRY_FORM_EDIT, SETTINGS,
-                CHANGE_PATTERN, MANAGE_SECURITY_QUESTIONS, BACKUP_EXPORT, BACKUP_IMPORT, LOGIN_ACTIVITY
+                CHANGE_PATTERN, MANAGE_SECURITY_QUESTIONS, BACKUP_EXPORT, BACKUP_IMPORT, LOGIN_ACTIVITY,
+                PHOTO_VAULT
             )
             if (current in protectedRoutes) {
                 navController.navigate(LOGIN) { popUpTo(0) { inclusive = true } }
@@ -151,6 +154,7 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
                 onOpenEntry = { id -> navController.navigate(ENTRY_DETAIL.replace("{id}", id)) },
                 onOpenSettings = { navController.navigate(SETTINGS) },
                 onViewLoginActivity = { navController.navigate(LOGIN_ACTIVITY) },
+                onOpenPhotoVault = { navController.navigate(PHOTO_VAULT) },
                 onLock = { vm.lock() }
             )
         }
@@ -238,6 +242,12 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
         composable(LOGIN_ACTIVITY) {
             LoginActivityScreen(
                 events = vm.loginEvents(),
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(PHOTO_VAULT) {
+            PhotoVaultScreen(
+                vm = vm,
                 onBack = { navController.popBackStack() }
             )
         }

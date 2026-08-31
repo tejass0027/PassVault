@@ -10,6 +10,8 @@ import com.tejas.passvault.auth.PatternAuthManager
 import com.tejas.passvault.auth.SecurityQuestionManager
 import com.tejas.passvault.crypto.CryptoManager
 import com.tejas.passvault.data.Credential
+import com.tejas.passvault.data.PhotoVaultRepository
+import com.tejas.passvault.data.VaultPhoto
 import com.tejas.passvault.data.VaultRepository
 import com.tejas.passvault.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -29,8 +31,10 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     val securityQuestions = SecurityQuestionManager(authPrefs)
     val biometricAuth = BiometricAuthManager(application)
     val vaultRepository = VaultRepository(application)
+    val photoVaultRepository = PhotoVaultRepository(application)
 
     val credentials: StateFlow<List<Credential>> = vaultRepository.credentials
+    val photos: StateFlow<List<VaultPhoto>> = photoVaultRepository.photos
 
     private val _isUnlocked = MutableStateFlow(false)
     val isUnlocked: StateFlow<Boolean> = _isUnlocked.asStateFlow()
@@ -90,6 +94,7 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         val dek = onboardingDek
         if (dek != null) {
             vaultRepository.unlock(dek)
+            photoVaultRepository.unlock(dek)
             _isUnlocked.value = true
         }
         onboardingDek = null
@@ -107,6 +112,7 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         _failedAttemptsSinceLastLogin.value = failedAttemptsSinceLastRecordedSuccess()
         authPrefs.recordLoginEvent(LoginEventType.PATTERN, success = true)
         vaultRepository.unlock(dek)
+        photoVaultRepository.unlock(dek)
         _isUnlocked.value = true
         return true
     }
@@ -124,6 +130,7 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         _failedAttemptsSinceLastLogin.value = failedAttemptsSinceLastRecordedSuccess()
         authPrefs.recordLoginEvent(LoginEventType.RECOVERY, success = true)
         vaultRepository.unlock(dek)
+        photoVaultRepository.unlock(dek)
         _isUnlocked.value = true
         return true
     }
@@ -150,6 +157,7 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
 
     fun lock() {
         vaultRepository.lock()
+        photoVaultRepository.lock()
         _isUnlocked.value = false
     }
 
@@ -158,6 +166,15 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     fun saveCredential(credential: Credential) = vaultRepository.upsert(credential)
 
     fun deleteCredential(id: String) = vaultRepository.delete(id)
+
+    // --- Photo vault ---
+
+    suspend fun addPhoto(caption: String, imageBytes: ByteArray) =
+        photoVaultRepository.addPhoto(caption, imageBytes)
+
+    suspend fun deletePhoto(id: String) = photoVaultRepository.deletePhoto(id)
+
+    suspend fun loadPhotoBytes(id: String): ByteArray? = photoVaultRepository.loadPhotoBytes(id)
 
     // --- Settings ---
 
@@ -187,6 +204,7 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         lock()
         authPrefs.clearAll()
         vaultRepository.deleteVaultFile()
+        photoVaultRepository.deleteAll()
     }
 
     fun replaceAllCredentials(newCredentials: List<Credential>) = vaultRepository.replaceAll(newCredentials)

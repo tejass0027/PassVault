@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
@@ -50,6 +51,7 @@ fun VaultListScreen(
     onOpenEntry: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onViewLoginActivity: () -> Unit,
+    onOpenPhotoVault: () -> Unit,
     onLock: () -> Unit
 ) {
     val credentials by vm.credentials.collectAsState()
@@ -71,6 +73,9 @@ fun VaultListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenPhotoVault) {
+                        Icon(Icons.Filled.Photo, contentDescription = "Photo vault")
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }
