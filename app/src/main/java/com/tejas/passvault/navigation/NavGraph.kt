@@ -27,8 +27,10 @@ import com.tejas.passvault.ui.settings.BackupExportScreen
 import com.tejas.passvault.ui.settings.BackupImportScreen
 import com.tejas.passvault.ui.settings.ChangePatternScreen
 import com.tejas.passvault.ui.settings.LoginActivityScreen
+import com.tejas.passvault.ui.settings.HiddenVaultSetupScreen
 import com.tejas.passvault.ui.settings.SettingsScreen
 import com.tejas.passvault.ui.photos.PhotoVaultScreen
+import com.tejas.passvault.ui.hidden.HiddenNotesScreen
 import com.tejas.passvault.ui.vault.AddEditEntryScreen
 import com.tejas.passvault.ui.vault.EntryDetailScreen
 import com.tejas.passvault.ui.vault.VaultListScreen
@@ -50,13 +52,17 @@ private const val BACKUP_EXPORT = "backup_export"
 private const val BACKUP_IMPORT = "backup_import"
 private const val LOGIN_ACTIVITY = "login_activity"
 private const val PHOTO_VAULT = "photo_vault"
+private const val HIDDEN_VAULT_SETUP = "hidden_vault_setup"
+private const val HIDDEN_NOTES = "hidden_notes"
 
 @Composable
 fun PassVaultNavGraph(vm: VaultViewModel) {
     val navController = rememberNavController()
     val isUnlocked by vm.isUnlocked.collectAsState()
+    val isHiddenVaultUnlocked by vm.isHiddenVaultUnlocked.collectAsState()
 
-    // Auto-lock: if the app was backgrounded longer than the configured timeout, lock it.
+    // Auto-lock: if the app was backgrounded longer than the configured timeout, lock
+    // whichever vault (main or hidden) is currently open.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         var backgroundedAtMillis: Long? = null
@@ -66,10 +72,11 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
                 Lifecycle.Event.ON_START -> {
                     val since = backgroundedAtMillis
                     backgroundedAtMillis = null
-                    if (since != null && vm.vaultRepository.isUnlocked) {
+                    if (since != null) {
                         val elapsedSeconds = (System.currentTimeMillis() - since) / 1000
                         if (elapsedSeconds >= vm.authPrefs.autoLockSeconds) {
-                            vm.lock()
+                            if (vm.vaultRepository.isUnlocked) vm.lock()
+                            if (vm.hiddenNotesRepository.isUnlocked) vm.lockHiddenVault()
                         }
                     }
                 }
@@ -88,11 +95,18 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
             val protectedRoutes = setOf(
                 VAULT_LIST, ENTRY_DETAIL, ENTRY_FORM_EDIT, SETTINGS,
                 CHANGE_PATTERN, MANAGE_SECURITY_QUESTIONS, BACKUP_EXPORT, BACKUP_IMPORT, LOGIN_ACTIVITY,
-                PHOTO_VAULT
+                PHOTO_VAULT, HIDDEN_VAULT_SETUP
             )
             if (current in protectedRoutes) {
                 navController.navigate(LOGIN) { popUpTo(0) { inclusive = true } }
             }
+        }
+    }
+
+    // Same, but for the hidden vault - entirely independent of the main vault's state.
+    LaunchedEffect(isHiddenVaultUnlocked) {
+        if (!isHiddenVaultUnlocked && navController.currentDestination?.route == HIDDEN_NOTES) {
+            navController.navigate(LOGIN) { popUpTo(0) { inclusive = true } }
         }
     }
 
@@ -135,7 +149,10 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
                 onLoginSuccess = {
                     navController.navigate(VAULT_LIST) { popUpTo(0) { inclusive = true } }
                 },
-                onForgotPattern = { navController.navigate(FORGOT_PATTERN) }
+                onForgotPattern = { navController.navigate(FORGOT_PATTERN) },
+                onHiddenVaultUnlocked = {
+                    navController.navigate(HIDDEN_NOTES) { popUpTo(0) { inclusive = true } }
+                }
             )
         }
         composable(FORGOT_PATTERN) {
@@ -204,8 +221,24 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
                 onExportBackup = { navController.navigate(BACKUP_EXPORT) },
                 onImportBackup = { navController.navigate(BACKUP_IMPORT) },
                 onOpenLoginActivity = { navController.navigate(LOGIN_ACTIVITY) },
+                onSetUpHiddenVault = { navController.navigate(HIDDEN_VAULT_SETUP) },
                 onErased = {
                     navController.navigate(WELCOME) { popUpTo(0) { inclusive = true } }
+                }
+            )
+        }
+        composable(HIDDEN_VAULT_SETUP) {
+            HiddenVaultSetupScreen(
+                vm = vm,
+                onDone = { navController.popBackStack() },
+                onCancel = { navController.popBackStack() }
+            )
+        }
+        composable(HIDDEN_NOTES) {
+            HiddenNotesScreen(
+                vm = vm,
+                onLock = {
+                    vm.lockHiddenVault()
                 }
             )
         }

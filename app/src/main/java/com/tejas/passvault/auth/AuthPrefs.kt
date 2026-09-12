@@ -71,6 +71,28 @@ class AuthPrefs(context: Context) {
         return (0 until arr.length()).map { arr.getString(it) }
     }
 
+    /**
+     * A second, separate pattern that unlocks a hidden notes vault with its own DEK - entirely
+     * independent of the main vault. Drawing this pattern on the login screen (instead of the
+     * main one) is the only way to reach it; there is no menu entry that reveals its contents.
+     */
+    fun saveHiddenPatternWrap(salt: ByteArray, wrappedDek: ByteArray) {
+        prefs.edit()
+            .putString(KEY_HIDDEN_PATTERN_SALT, salt.toBase64())
+            .putString(KEY_HIDDEN_PATTERN_WRAPPED_DEK, wrappedDek.toBase64())
+            .apply()
+    }
+
+    fun hiddenPatternSalt(): ByteArray? = prefs.getString(KEY_HIDDEN_PATTERN_SALT, null)?.fromBase64()
+    fun hiddenPatternWrappedDek(): ByteArray? = prefs.getString(KEY_HIDDEN_PATTERN_WRAPPED_DEK, null)?.fromBase64()
+
+    fun clearHiddenVault() {
+        prefs.edit()
+            .remove(KEY_HIDDEN_PATTERN_SALT)
+            .remove(KEY_HIDDEN_PATTERN_WRAPPED_DEK)
+            .apply()
+    }
+
     /** Newest first. Every pattern/biometric/recovery attempt - successful or not - is recorded here. */
     fun recordLoginEvent(type: LoginEventType, success: Boolean) {
         val events = JSONArray(prefs.getString(KEY_LOGIN_EVENTS, "[]"))
@@ -115,6 +137,8 @@ class AuthPrefs(context: Context) {
         private const val KEY_SECURITY_SALT = "security_salt"
         private const val KEY_SECURITY_WRAPPED_DEK = "security_wrapped_dek"
         private const val KEY_SECURITY_QUESTIONS = "security_questions"
+        private const val KEY_HIDDEN_PATTERN_SALT = "hidden_pattern_salt"
+        private const val KEY_HIDDEN_PATTERN_WRAPPED_DEK = "hidden_pattern_wrapped_dek"
         private const val KEY_LOGIN_EVENTS = "login_events"
         private const val MAX_LOGIN_EVENTS = 50
         private const val KEY_THEME_MODE = "theme_mode"

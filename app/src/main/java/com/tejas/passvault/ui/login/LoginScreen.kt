@@ -37,7 +37,8 @@ import kotlinx.coroutines.launch
 fun LoginScreen(
     vm: VaultViewModel,
     onLoginSuccess: () -> Unit,
-    onForgotPattern: () -> Unit
+    onForgotPattern: () -> Unit,
+    onHiddenVaultUnlocked: () -> Unit
 ) {
     val activity = LocalContext.current as FragmentActivity
     val scope = rememberCoroutineScope()
@@ -109,13 +110,15 @@ fun LoginScreen(
                 isVerifyingPattern = true
                 statusMessage = "Verifying..."
                 scope.launch {
-                    val success = vm.tryLoginWithPattern(pattern)
+                    val result = vm.attemptPatternLogin(pattern)
                     isVerifyingPattern = false
-                    if (success) {
-                        onLoginSuccess()
-                    } else {
-                        statusMessage = "Wrong pattern, try again"
-                        showPatternError = true
+                    when (result) {
+                        VaultViewModel.PatternLoginResult.MAIN_VAULT -> onLoginSuccess()
+                        VaultViewModel.PatternLoginResult.HIDDEN_VAULT -> onHiddenVaultUnlocked()
+                        VaultViewModel.PatternLoginResult.WRONG_PATTERN -> {
+                            statusMessage = "Wrong pattern, try again"
+                            showPatternError = true
+                        }
                     }
                 }
             }

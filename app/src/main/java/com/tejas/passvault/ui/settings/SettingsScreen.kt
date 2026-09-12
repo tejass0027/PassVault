@@ -49,6 +49,7 @@ fun SettingsScreen(
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
     onOpenLoginActivity: () -> Unit,
+    onSetUpHiddenVault: () -> Unit,
     onErased: () -> Unit
 ) {
     var biometricEnabled by remember { mutableStateOf(vm.isBiometricEnabled) }
@@ -56,10 +57,32 @@ fun SettingsScreen(
     var showAutoLockMenu by remember { mutableStateOf(false) }
     var showThemeMenu by remember { mutableStateOf(false) }
     var showEraseConfirm by remember { mutableStateOf(false) }
+    var showRemoveHiddenVaultConfirm by remember { mutableStateOf(false) }
+    // Deliberately not `remember`ed: read fresh on every recomposition (including when this
+    // screen becomes visible again after popping back from setup) rather than caching a
+    // stale value from first composition.
+    val hasHiddenVault = vm.hasHiddenVault
     val themeMode by vm.themeMode.collectAsState()
 
     val autoLockOptions = listOf(0 to "Immediately", 30 to "After 30 seconds", 60 to "After 1 minute", 300 to "After 5 minutes")
     val themeOptions = listOf(ThemeMode.SYSTEM to "System default", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark")
+
+    if (showRemoveHiddenVaultConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRemoveHiddenVaultConfirm = false },
+            title = { Text("Remove hidden vault?") },
+            text = { Text("This permanently deletes everything in it and turns off its pattern. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRemoveHiddenVaultConfirm = false
+                    vm.removeHiddenVault()
+                }) { Text("Remove", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoveHiddenVaultConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
 
     if (showEraseConfirm) {
         AlertDialog(
@@ -190,6 +213,23 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenLoginActivity)
             )
             HorizontalDivider()
+
+            ListItem(
+                headlineContent = { Text(if (hasHiddenVault) "Change hidden vault pattern" else "Set up hidden vault") },
+                supportingContent = {
+                    Text("A second pattern that opens a separate, private notes vault only you know about")
+                },
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onSetUpHiddenVault)
+            )
+            HorizontalDivider()
+
+            if (hasHiddenVault) {
+                ListItem(
+                    headlineContent = { Text("Remove hidden vault", color = MaterialTheme.colorScheme.error) },
+                    modifier = Modifier.fillMaxWidth().clickable { showRemoveHiddenVaultConfirm = true }
+                )
+                HorizontalDivider()
+            }
 
             ListItem(
                 headlineContent = { Text("Erase all data", color = MaterialTheme.colorScheme.error) },
