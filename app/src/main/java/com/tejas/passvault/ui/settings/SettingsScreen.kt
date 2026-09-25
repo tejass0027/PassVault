@@ -217,7 +217,7 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(if (hasHiddenVault) "Change hidden vault pattern" else "Set up hidden vault") },
                 supportingContent = {
-                    Text("A second pattern that opens a separate, private notes vault only you know about")
+                    Text("A second pattern that opens a separate private vault for secret passwords, photos and notes")
                 },
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onSetUpHiddenVault)
             )

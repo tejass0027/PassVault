@@ -21,9 +21,9 @@ import kotlinx.coroutines.launch
  * Encryption and file I/O run on a background dispatcher so they never block the UI thread -
  * e.g. tapping Save shouldn't stall the screen while the vault file is being written.
  */
-class VaultRepository(context: Context) {
+class VaultRepository(context: Context, fileName: String = "vault.dat") {
 
-    private val vaultFile: File = File(context.filesDir, "vault.dat")
+    private val vaultFile: File = File(context.filesDir, fileName)
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var dek: ByteArray? = null

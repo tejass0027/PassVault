@@ -50,7 +50,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.tejas.passvault.VaultViewModel
 import com.tejas.passvault.data.VaultPhoto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -58,10 +57,16 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotoVaultScreen(vm: VaultViewModel, onBack: () -> Unit) {
+fun PhotoVaultScreen(
+    photos: List<VaultPhoto>,
+    onAddPhoto: suspend (ByteArray) -> Unit,
+    onDeletePhoto: suspend (String) -> Unit,
+    loadPhotoBytes: suspend (String) -> ByteArray?,
+    onBack: () -> Unit,
+    title: String = "Photo vault"
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val photos by vm.photos.collectAsState()
     var viewingPhoto by remember { mutableStateOf<VaultPhoto?>(null) }
     var isAdding by remember { mutableStateOf(false) }
 
@@ -74,7 +79,7 @@ fun PhotoVaultScreen(vm: VaultViewModel, onBack: () -> Unit) {
             val bytes = withContext(Dispatchers.IO) {
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             }
-            if (bytes != null) vm.addPhoto("", bytes)
+            if (bytes != null) onAddPhoto(bytes)
             isAdding = false
         }
     }
@@ -82,7 +87,7 @@ fun PhotoVaultScreen(vm: VaultViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Photo vault") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -115,7 +120,7 @@ fun PhotoVaultScreen(vm: VaultViewModel, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(photos, key = { it.id }) { photo ->
-                        PhotoThumbnail(vm = vm, photo = photo, onClick = { viewingPhoto = photo })
+                        PhotoThumbnail(loadPhotoBytes = loadPhotoBytes, photo = photo, onClick = { viewingPhoto = photo })
                     }
                 }
             }
@@ -124,12 +129,12 @@ fun PhotoVaultScreen(vm: VaultViewModel, onBack: () -> Unit) {
 
     viewingPhoto?.let { photo ->
         PhotoViewerDialog(
-            vm = vm,
+            loadPhotoBytes = loadPhotoBytes,
             photo = photo,
             onDismiss = { viewingPhoto = null },
             onDelete = {
                 scope.launch {
-                    vm.deletePhoto(photo.id)
+                    onDeletePhoto(photo.id)
                     viewingPhoto = null
                 }
             }
@@ -138,10 +143,10 @@ fun PhotoVaultScreen(vm: VaultViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun PhotoThumbnail(vm: VaultViewModel, photo: VaultPhoto, onClick: () -> Unit) {
+private fun PhotoThumbnail(loadPhotoBytes: suspend (String) -> ByteArray?, photo: VaultPhoto, onClick: () -> Unit) {
     var bitmap by remember(photo.id) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(photo.id) {
-        val bytes = vm.loadPhotoBytes(photo.id)
+        val bytes = loadPhotoBytes(photo.id)
         bitmap = bytes?.let { decodeBitmap(it) }
     }
     Box(
@@ -169,10 +174,15 @@ private fun PhotoThumbnail(vm: VaultViewModel, photo: VaultPhoto, onClick: () ->
 }
 
 @Composable
-private fun PhotoViewerDialog(vm: VaultViewModel, photo: VaultPhoto, onDismiss: () -> Unit, onDelete: () -> Unit) {
+private fun PhotoViewerDialog(
+    loadPhotoBytes: suspend (String) -> ByteArray?,
+    photo: VaultPhoto,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
     var bitmap by remember(photo.id) { mutableStateOf<ImageBitmap?>(null) }
     LaunchedEffect(photo.id) {
-        val bytes = vm.loadPhotoBytes(photo.id)
+        val bytes = loadPhotoBytes(photo.id)
         bitmap = bytes?.let { decodeBitmap(it) }
     }
     Dialog(onDismissRequest = onDismiss) {

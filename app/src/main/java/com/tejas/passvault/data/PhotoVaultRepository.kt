@@ -20,10 +20,14 @@ import kotlinx.coroutines.withContext
  * keeps adding/removing a photo cheap (no re-encrypting every other photo) and keeps the
  * credentials file itself small and fast to load.
  */
-class PhotoVaultRepository(context: Context) {
+class PhotoVaultRepository(
+    context: Context,
+    indexFileName: String = "photos_index.dat",
+    photosDirName: String = "photos"
+) {
 
-    private val indexFile: File = File(context.filesDir, "photos_index.dat")
-    private val photosDir: File = File(context.filesDir, "photos").apply { mkdirs() }
+    private val indexFile: File = File(context.filesDir, indexFileName)
+    private val photosDir: File = File(context.filesDir, photosDirName).apply { mkdirs() }
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var dek: ByteArray? = null

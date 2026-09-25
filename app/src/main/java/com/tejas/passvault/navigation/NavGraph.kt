@@ -30,7 +30,7 @@ import com.tejas.passvault.ui.settings.LoginActivityScreen
 import com.tejas.passvault.ui.settings.HiddenVaultSetupScreen
 import com.tejas.passvault.ui.settings.SettingsScreen
 import com.tejas.passvault.ui.photos.PhotoVaultScreen
-import com.tejas.passvault.ui.hidden.HiddenNotesScreen
+import com.tejas.passvault.ui.hidden.HiddenVaultScreen
 import com.tejas.passvault.ui.vault.AddEditEntryScreen
 import com.tejas.passvault.ui.vault.EntryDetailScreen
 import com.tejas.passvault.ui.vault.VaultListScreen
@@ -235,7 +235,7 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
             )
         }
         composable(HIDDEN_NOTES) {
-            HiddenNotesScreen(
+            HiddenVaultScreen(
                 vm = vm,
                 onLock = {
                     vm.lockHiddenVault()
@@ -279,8 +279,12 @@ fun PassVaultNavGraph(vm: VaultViewModel) {
             )
         }
         composable(PHOTO_VAULT) {
+            val photos by vm.photos.collectAsState()
             PhotoVaultScreen(
-                vm = vm,
+                photos = photos,
+                onAddPhoto = { vm.addPhoto("", it) },
+                onDeletePhoto = { vm.deletePhoto(it) },
+                loadPhotoBytes = { vm.loadPhotoBytes(it) },
                 onBack = { navController.popBackStack() }
             )
         }

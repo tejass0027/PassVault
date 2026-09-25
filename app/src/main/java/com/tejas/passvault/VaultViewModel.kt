@@ -37,10 +37,14 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     val photoVaultRepository = PhotoVaultRepository(application)
     val hiddenVaultAuth = HiddenVaultAuthManager(authPrefs)
     val hiddenNotesRepository = HiddenNotesRepository(application)
+    val hiddenVaultRepository = VaultRepository(application, "hidden_vault.dat")
+    val hiddenPhotoRepository = PhotoVaultRepository(application, "hidden_photos_index.dat", "hidden_photos")
 
     val credentials: StateFlow<List<Credential>> = vaultRepository.credentials
     val photos: StateFlow<List<VaultPhoto>> = photoVaultRepository.photos
     val hiddenNotes: StateFlow<List<HiddenNote>> = hiddenNotesRepository.notes
+    val hiddenCredentials: StateFlow<List<Credential>> = hiddenVaultRepository.credentials
+    val hiddenPhotos: StateFlow<List<VaultPhoto>> = hiddenPhotoRepository.photos
 
     private val _isUnlocked = MutableStateFlow(false)
     val isUnlocked: StateFlow<Boolean> = _isUnlocked.asStateFlow()
@@ -137,6 +141,8 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         val hiddenDek = withContext(Dispatchers.Default) { hiddenVaultAuth.tryUnlock(pattern) }
         if (hiddenDek != null) {
             hiddenNotesRepository.unlock(hiddenDek)
+            hiddenVaultRepository.unlock(hiddenDek)
+            hiddenPhotoRepository.unlock(hiddenDek)
             _isHiddenVaultUnlocked.value = true
             return PatternLoginResult.HIDDEN_VAULT
         }
@@ -146,6 +152,8 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun lockHiddenVault() {
+        hiddenPhotoRepository.lock()
+        hiddenVaultRepository.lock()
         hiddenNotesRepository.lock()
         _isHiddenVaultUnlocked.value = false
     }
@@ -189,11 +197,23 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
         lockHiddenVault()
         authPrefs.clearHiddenVault()
         hiddenNotesRepository.deleteVaultFile()
+        hiddenVaultRepository.deleteVaultFile()
+        hiddenPhotoRepository.deleteAll()
     }
 
     fun saveHiddenNote(note: HiddenNote) = hiddenNotesRepository.upsert(note)
 
     fun deleteHiddenNote(id: String) = hiddenNotesRepository.delete(id)
+
+    fun saveHiddenCredential(credential: Credential) = hiddenVaultRepository.upsert(credential)
+
+    fun deleteHiddenCredential(id: String) = hiddenVaultRepository.delete(id)
+
+    suspend fun addHiddenPhoto(imageBytes: ByteArray) = hiddenPhotoRepository.addPhoto("", imageBytes)
+
+    suspend fun deleteHiddenPhoto(id: String) = hiddenPhotoRepository.deletePhoto(id)
+
+    suspend fun loadHiddenPhotoBytes(id: String): ByteArray? = hiddenPhotoRepository.loadPhotoBytes(id)
 
     suspend fun verifySecurityAnswers(answers: List<String>): Boolean =
         withContext(Dispatchers.Default) { securityQuestions.tryUnlock(answers) != null }

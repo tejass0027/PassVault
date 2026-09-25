@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -44,7 +43,7 @@ import com.tejas.passvault.data.HiddenNote
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HiddenNotesScreen(vm: VaultViewModel, onLock: () -> Unit) {
+fun HiddenNotesScreen(vm: VaultViewModel, onBack: () -> Unit) {
     val notes by vm.hiddenNotes.collectAsState()
     var editingNote by remember { mutableStateOf<HiddenNote?>(null) }
     var isAddingNew by remember { mutableStateOf(false) }
@@ -87,8 +86,8 @@ fun HiddenNotesScreen(vm: VaultViewModel, onLock: () -> Unit) {
             TopAppBar(
                 title = { Text("Secret notes") },
                 navigationIcon = {
-                    IconButton(onClick = onLock) {
-                        Icon(Icons.Filled.Lock, contentDescription = "Lock")
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
